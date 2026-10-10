@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">BarPOS</string>
+    <string name="server_url_default">https://ais-dev-jbxo4myjqwzyyal7hzzxxj-348577159442.asia-southeast1.run.app</string>
+    <string name="offline_title">Internetga ulanish yo\'q</string>
+    <string name="offline_message">Iltimos, Wi-Fi yoki mobil internetni tekshiring va qayta urinib ko\'ring.</string>
+    <string name="btn_retry">Qayta urinish</string>
+    <string name="change_server">Server manzilini o\'zgartirish</string>
+</resources>

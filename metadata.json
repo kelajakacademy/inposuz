@@ -1,0 +1,8 @@
+{
+  "name": "iNPOS",
+  "description": "Professional iNPOS Restoran POS & Kitchen Display System with automated thermal printing, order tracking, waiter performance analytics, Soliq.uz OFD fiscal integration, and real-time delivery aggregator support for Yandex Eats, Uzum Tezkor, and Telegram Bot ordering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
