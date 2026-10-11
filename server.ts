@@ -144,9 +144,9 @@ async function startServer() {
         configs.push({
           cafeId: "superadmin",
           botToken: authBotToken,
-          botUsername: "InposAuth_Bot",
-          welcomeMessage: "iNPOS Master CRM Xavfsizlik Boti",
-          cafeName: "iNPOS Master Owner CRM",
+          botUsername: "BarposAuth_Bot",
+          welcomeMessage: "iNPOS CRM Xavfsizlik Boti",
+          cafeName: "iNPOS CRM",
           cafePhone: "+998 71 200 00 00",
           cafeAddress: "iNPOS Cloud"
         });
@@ -239,7 +239,7 @@ async function startServer() {
       const fromUser = message.from;
       const contact = message.contact;
 
-      // Check if message is for Master CRM Auth Bot (@InposAuth_Bot)
+      // Check if message is for Master CRM Auth Bot (@BarposAuth_Bot)
       if (botToken === "8872910789:AAHN_ZyICBfi8T12bIFaOdpedy4kvsW7k8w") {
         const senderUsername = (fromUser?.username || message.chat.username || "").toLowerCase().replace(/^@/, "");
         
@@ -353,7 +353,7 @@ async function startServer() {
 
         // 4. Default /start or General Chat Message -> Show Menu Keyboard (NO CODE SPAM!)
         const welcomeMsg = `👑 <b>Ассалому алайкум, Хакимжон Хайитов (@Khayitov099)!</b>\n\n` +
-          `iNPOS Master Owner CRM хавфсизлик ботига хуш келибсиз.\n\n` +
+          `iNPOS CRM хавфсизлик ботига хуш келибсиз.\n\n` +
           `Керакли хизматни танлаш учун пастдаги тугмалардан фойдаланинг:`;
 
         await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -656,7 +656,7 @@ async function startServer() {
       db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('telegram_bot_username', ?)").run(botUser);
       db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('telegram_bot_title', ?)").run(meData?.result?.first_name || "iNPOS Bot");
 
-      // Register Bot Commands for Master Auth Bot (@InposAuth_Bot)
+      // Register Bot Commands for Master Auth Bot (@BarposAuth_Bot)
       const masterBotToken = "8872910789:AAHN_ZyICBfi8T12bIFaOdpedy4kvsW7k8w";
       try {
         const appUrl = "https://ais-dev-jbxo4myjqwzyyal7hzzxxj-348577159442.asia-southeast1.run.app";
@@ -788,7 +788,7 @@ async function startServer() {
     }
   });
 
-  // SuperAdmin Master CRM Telegram OTP & QR Code Endpoints (@InposAuth_Bot)
+  // SuperAdmin Master CRM Telegram OTP & QR Code Endpoints (@BarposAuth_Bot)
   let activeMasterCrmOtp: { code: string; expiresAt: number } | null = null;
   const qrAuthSessions = new Map<string, { status: "pending" | "approved"; createdAt: number }>();
 
@@ -797,7 +797,7 @@ async function startServer() {
     qrAuthSessions.set(sessionId, { status: "pending", createdAt: Date.now() });
     
     // QR code payload link
-    const qrLink = `https://t.me/InposAuth_Bot?start=${sessionId}`;
+    const qrLink = `https://t.me/BarposAuth_Bot?start=${sessionId}`;
     return res.json({
       success: true,
       sessionId,
@@ -893,7 +893,7 @@ async function startServer() {
       } catch (e) {}
 
       const messageText = `👑 <b>Ассалому алайкум, Хакимжон Хайитов (@Khayitov099)!</b>\n\n` +
-        `Сиз iNPOS Master Owner CRM дастурининг ягона эгаси сифатида муваффақиятли тасдиқландингиз.\n\n` +
+        `Сиз iNPOS CRM тизимига муваффақиятли тасдиқландингиз.\n\n` +
         `🔑 <b>Сизнинг 6 хонали тасдиқлаш кодингиз:</b>\n` +
         `👉 <code>${code}</code> 👈\n\n` +
         `Логин: <code>nastarin@inpos.uz</code>\n` +
@@ -922,7 +922,7 @@ async function startServer() {
         targetUsername: "@Khayitov099",
         message: sentSuccess 
           ? "🔑 Код Telegram орқали бевосита @Khayitov099 аккаунтингизга юборирилди!" 
-          : "Илтимос, Telegram'да @InposAuth_Bot ботига кириб /start босинг! Код фақат @Khayitov099 аккаунтига юборилади."
+          : "Илтимос, Telegram'да @BarposAuth_Bot ботига кириб /start босинг! Код фақат @Khayitov099 аккаунтига юборилади."
       });
     } catch (err: any) {
       return res.status(500).json({ success: false, message: err.message });
@@ -983,6 +983,354 @@ async function startServer() {
       res.json(cafe);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ================= CRM / SUPERADMIN CAFES & STATS API =================
+  app.get("/api/superadmin/cafes", (req, res) => {
+    try {
+      const cafesList = db.prepare(`
+        SELECT c.*, 
+               u.username as adminUsername, 
+               u.password as adminPassword, 
+               u.fullName as adminFullName,
+               u.phone as adminPhone
+        FROM cafes c
+        LEFT JOIN admin_users u ON u.cafeId = c.id
+        ORDER BY c.createdAt DESC
+      `).all() as any[];
+
+      const now = new Date();
+      const todayStr = now.toISOString().split("T")[0];
+      const monthPrefix = todayStr.substring(0, 7);
+
+      const enriched = cafesList.map(cafe => {
+        // Calculate turnover from orders
+        const ordersRows = db.prepare(`
+          SELECT total, timestamp, status 
+          FROM orders 
+          WHERE cafeId = ? AND status != 'cancelled'
+        `).all(cafe.id) as any[];
+
+        let daily = 0;
+        let monthly = 0;
+        let yearly = 0;
+
+        for (const o of ordersRows) {
+          const tot = Number(o.total || 0);
+          const t = String(o.timestamp || "");
+          if (t.startsWith(todayStr)) {
+            daily += tot;
+          }
+          if (t.startsWith(monthPrefix)) {
+            monthly += tot;
+          }
+          yearly += tot;
+        }
+
+        // Fetch payments for this cafe
+        const payments = db.prepare(`
+          SELECT * FROM cafe_payments 
+          WHERE cafeId = ? 
+          ORDER BY createdAt DESC
+        `).all(cafe.id) as any[];
+
+        const totalPaid = payments.reduce((acc: number, p: any) => acc + (Number(p.amount) || 0), 0);
+
+        // Expiration and trial calculations
+        let expiresAt = cafe.expiresAt;
+        const isTrial = Boolean(cafe.isTrial);
+        const trialDays = Number(cafe.trialDays) || 14;
+
+        if (!expiresAt) {
+          const created = cafe.createdAt ? new Date(cafe.createdAt) : new Date();
+          if (isTrial) {
+            created.setDate(created.getDate() + trialDays);
+          } else {
+            created.setDate(created.getDate() + 30);
+          }
+          expiresAt = created.toISOString().split("T")[0];
+        }
+
+        const isDateExpired = Boolean(expiresAt && new Date(expiresAt).getTime() < now.getTime());
+        const isUnpaid = totalPaid <= 0;
+        let computedStatus = cafe.status || "active";
+        let isPaymentRequired = false;
+
+        if (computedStatus === "expired" || (isDateExpired && isUnpaid)) {
+          computedStatus = "expired";
+          isPaymentRequired = true;
+        } else if (isTrial && !isDateExpired) {
+          computedStatus = "trial";
+        }
+
+        return {
+          id: cafe.id,
+          name: cafe.name,
+          businessType: cafe.businessType || "restaurant",
+          ownerName: cafe.adminFullName || cafe.name + " Egasi",
+          phone: cafe.phone || cafe.adminPhone || "+998 90 000 00 00",
+          address: cafe.address || "Toshkent shahri",
+          registrationDate: cafe.createdAt ? String(cafe.createdAt).substring(0, 10) : todayStr,
+          status: computedStatus,
+          isPaymentRequired,
+          isTrial,
+          trialDays,
+          expiresAt,
+          subscriptionFee: Number(cafe.subscriptionFee) || 500000,
+          dailyTurnover: daily,
+          monthlyTurnover: monthly,
+          yearlyTurnover: yearly,
+          ordersCount: ordersRows.length,
+          totalPaid: totalPaid,
+          payments: payments.map(p => ({
+            id: p.id,
+            cafeId: p.cafeId,
+            date: p.date,
+            amount: p.amount,
+            paymentMethod: p.paymentMethod,
+            notes: p.notes
+          })),
+          adminCredentials: {
+            username: cafe.adminUsername || cafe.phone,
+            password: cafe.adminPassword || "admin123"
+          }
+        };
+      });
+
+      res.json(enriched);
+    } catch (err: any) {
+      console.error("Superadmin cafes error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/superadmin/cafes/create", (req, res) => {
+    try {
+      const { name, businessType, ownerName, username, password, phone, address, subscriptionFee } = req.body;
+      const cafeName = String(name || "").trim();
+      const adminLogin = String(username || phone || "").trim();
+      const adminPass = String(password || "").trim();
+      const owner = String(ownerName || cafeName + " Egasi").trim();
+      const contactPhone = String(phone || adminLogin).trim();
+
+      if (!cafeName || !adminLogin || !adminPass) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Kafe nomi, login va parol kiritilishi shart!" 
+        });
+      }
+
+      // Check if username/phone already taken in admin_users
+      const existingUser = db.prepare("SELECT id FROM admin_users WHERE username = ? OR phone = ?").get(adminLogin, adminLogin);
+      if (existingUser) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Ushbu login yoki telefon (${adminLogin}) bilan boshqa admin mavjud. Boshqa login tanlang!` 
+        });
+      }
+
+      const cafeId = "cafe-" + Math.random().toString(36).substr(2, 8);
+      const adminId = "admin-" + Math.random().toString(36).substr(2, 9);
+      const subFee = Number(subscriptionFee) || 500000;
+
+      const isTrial = Boolean(req.body.isTrial);
+      const trialDays = Number(req.body.trialDays) || 14;
+      let expiresAt = req.body.expiresAt;
+      if (!expiresAt) {
+        const expDate = new Date();
+        if (isTrial) {
+          expDate.setDate(expDate.getDate() + trialDays);
+        } else {
+          expDate.setDate(expDate.getDate() + 30);
+        }
+        expiresAt = expDate.toISOString().split("T")[0];
+      }
+      const initialStatus = isTrial ? "trial" : "active";
+
+      // 1. Insert into cafes table
+      db.prepare(`
+        INSERT INTO cafes (id, name, businessType, ownerId, phone, address, status, subscriptionFee, totalPaid, expiresAt, isTrial, trialDays, createdAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(cafeId, cafeName, businessType || 'restaurant', adminId, contactPhone, address || 'Toshkent shahri', initialStatus, subFee, expiresAt, isTrial ? 1 : 0, trialDays);
+
+      // 2. Insert into admin_users table
+      db.prepare(`
+        INSERT INTO admin_users (id, username, password, fullName, phone, role, companyName, businessType, cafeId)
+        VALUES (?, ?, ?, ?, ?, 'owner', ?, ?, ?)
+      `).run(adminId, adminLogin, adminPass, owner, contactPhone, cafeName, businessType || 'restaurant', cafeId);
+
+      // 3. Seed 10 starter tables
+      const insertTable = db.prepare("INSERT INTO tables (id, number, capacity, status, cafeId) VALUES (?, ?, ?, 'available', ?)");
+      for (let i = 1; i <= 10; i++) {
+        insertTable.run(`${cafeId}-t-${i}`, i.toString(), 4, cafeId);
+      }
+
+      // 4. Seed Manager role & staff for POS login
+      const managerRoleId = `${cafeId}-role-manager`;
+      db.prepare(`
+        INSERT INTO roles (id, name, accessLevel, description, canAccessPos, canTakeOrders, canCloseOrders, canCancelOrders, canGiveDiscount, canAccessReports, canAccessAdmin, cafeId)
+        VALUES (?, 'Rahbar', 'full', 'Muassasa rahbari', 1, 1, 1, 1, 1, 1, 1, ?)
+      `).run(managerRoleId, cafeId);
+
+      db.prepare(`
+        INSERT INTO waiters (id, name, pin, role, phone, status, cafeId)
+        VALUES (?, ?, '1111', ?, ?, 'active', ?)
+      `).run(`${cafeId}-w-1`, `${owner} (Rahbar)`, managerRoleId, contactPhone, cafeId);
+
+      // 5. Seed receipt config
+      const cafeReceiptConfig = {
+        restaurantName: cafeName,
+        address: address || "Toshkent shahri",
+        phone: contactPhone,
+        footerMessage: "Tashrifingiz uchun rahmat!",
+        showLogo: true,
+        infoText: `iNPOS Cloud System\nKafe: ${cafeName}\nID: ${cafeId}\nTel: ${contactPhone}`,
+        textAlign: "center",
+        autoPrintKitchen: true,
+        autoPrintBill: true
+      };
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(`receipt_config_${cafeId}`, JSON.stringify(cafeReceiptConfig));
+
+      res.json({
+        success: true,
+        message: "Yangi kafe va admin hisobi muvaffaqiyatli yaratildi!",
+        cafe: {
+          id: cafeId,
+          name: cafeName,
+          businessType: businessType || 'restaurant',
+          ownerName: owner,
+          phone: contactPhone,
+          address: address || 'Toshkent shahri',
+          status: initialStatus,
+          isTrial,
+          trialDays,
+          expiresAt,
+          subscriptionFee: subFee,
+          adminCredentials: {
+            username: adminLogin,
+            password: adminPass
+          }
+        }
+      });
+    } catch (err: any) {
+      console.error("Create cafe error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  // Extend subscription endpoint
+  app.post("/api/superadmin/cafes/extend-subscription", (req, res) => {
+    try {
+      const { cafeId, days, newExpiresAt, paymentAmount, paymentMethod, notes } = req.body;
+      if (!cafeId) {
+        return res.status(400).json({ success: false, message: "Kafe tanlanishi shart!" });
+      }
+
+      const cafe = db.prepare("SELECT * FROM cafes WHERE id = ?").get(cafeId) as any;
+      if (!cafe) {
+        return res.status(404).json({ success: false, message: "Bunday muassasa topilmadi" });
+      }
+
+      let targetDateStr = newExpiresAt;
+      if (!targetDateStr) {
+        let baseDate = new Date();
+        if (cafe.expiresAt && new Date(cafe.expiresAt).getTime() > Date.now()) {
+          baseDate = new Date(cafe.expiresAt);
+        }
+        const addDays = Number(days) || 30;
+        baseDate.setDate(baseDate.getDate() + addDays);
+        targetDateStr = baseDate.toISOString().split("T")[0];
+      }
+
+      // Update cafe: active status, new expiration date, no longer expired trial
+      db.prepare(`
+        UPDATE cafes 
+        SET expiresAt = ?, status = 'active', isTrial = 0 
+        WHERE id = ?
+      `).run(targetDateStr, cafeId);
+
+      const amt = Number(paymentAmount) || 0;
+      if (amt > 0) {
+        const payId = "PAY-" + Date.now();
+        const dateStr = new Date().toISOString().split("T")[0];
+        db.prepare(`
+          INSERT INTO cafe_payments (id, cafeId, date, amount, paymentMethod, notes)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(payId, cafeId, dateStr, amt, paymentMethod || 'card', notes || `${targetDateStr} gacha obuna uzaytirildi`);
+
+        db.prepare("UPDATE cafes SET totalPaid = COALESCE(totalPaid, 0) + ? WHERE id = ?").run(amt, cafeId);
+      }
+
+      res.json({
+        success: true,
+        message: `Obuna muddati ${targetDateStr} gacha muvaffaqiyatli uzaytirildi!`,
+        expiresAt: targetDateStr,
+        status: 'active'
+      });
+    } catch (err: any) {
+      console.error("Extend subscription error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.post("/api/superadmin/cafes/payment", (req, res) => {
+    try {
+      const { cafeId, amount, paymentMethod, notes } = req.body;
+      if (!cafeId || !amount) {
+        return res.status(400).json({ success: false, message: "Kafe va summa ko'rsatilishi shart" });
+      }
+
+      const amt = Number(amount);
+      const payId = "PAY-" + Date.now();
+      const dateStr = new Date().toISOString().split("T")[0];
+
+      db.prepare(`
+        INSERT INTO cafe_payments (id, cafeId, date, amount, paymentMethod, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(payId, cafeId, dateStr, amt, paymentMethod || 'card', notes || 'Oylik obuna to‘lovi');
+
+      db.prepare(`
+        UPDATE cafes 
+        SET totalPaid = COALESCE(totalPaid, 0) + ? 
+        WHERE id = ?
+      `).run(amt, cafeId);
+
+      res.json({ success: true, message: "To'lov muvaffaqiyatli qabul qilindi!" });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.post("/api/superadmin/cafes/update-status", (req, res) => {
+    try {
+      const { cafeId, status } = req.body;
+      if (!cafeId || !status) {
+        return res.status(400).json({ success: false, message: "Ma'lumotlar to'liq emas" });
+      }
+      db.prepare("UPDATE cafes SET status = ? WHERE id = ?").run(status, cafeId);
+      res.json({ success: true, message: "Kafe holati yangilandi!" });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
+
+  app.delete("/api/superadmin/cafes/:id", (req, res) => {
+    try {
+      const { id } = req.params;
+      if (id === "default") {
+        return res.status(400).json({ success: false, message: "Asosiy kafeni o'chirish mumkin emas!" });
+      }
+
+      db.prepare("DELETE FROM cafes WHERE id = ?").run(id);
+      db.prepare("DELETE FROM admin_users WHERE cafeId = ?").run(id);
+      db.prepare("DELETE FROM tables WHERE cafeId = ?").run(id);
+      db.prepare("DELETE FROM waiters WHERE cafeId = ?").run(id);
+      db.prepare("DELETE FROM cafe_payments WHERE cafeId = ?").run(id);
+
+      res.json({ success: true, message: "Kafe o'chirildi!" });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
     }
   });
 
@@ -1283,7 +1631,7 @@ async function startServer() {
       `).run(cleanPhone, code, expiresAt, telegramUsername || "", now);
 
       const config = getTelegramBotConfig();
-      const botUsername = config.botUsername || "InposAuthBot";
+      const botUsername = config.botUsername || "BarposAuth_Bot";
 
       // Attempt live dispatch to Telegram if token is set
       let sentToTelegram = false;
@@ -4469,6 +4817,30 @@ async function startServer() {
       const activeCafeId = waiter.cafeId || cafeId || "default";
       const cafe = db.prepare("SELECT * FROM cafes WHERE id = ?").get(activeCafeId) as any;
 
+      // 3. Check cafe subscription / trial expiration
+      if (cafe && cafe.id !== "superadmin") {
+        const nowTime = Date.now();
+        const payments = db.prepare("SELECT amount FROM cafe_payments WHERE cafeId = ?").all(cafe.id) as any[];
+        const totalPaid = payments.reduce((acc, p) => acc + (Number(p.amount) || 0), Number(cafe.totalPaid || 0));
+
+        let isExpired = cafe.status === 'expired';
+        if (cafe.expiresAt) {
+          const expTime = new Date(cafe.expiresAt).getTime();
+          // If trial or subscription expiration has passed and totalPaid is 0, access is locked!
+          if (expTime < nowTime && totalPaid <= 0) {
+            isExpired = true;
+          }
+        }
+
+        if (isExpired) {
+          return res.status(403).json({
+            success: false,
+            isPaymentRequired: true,
+            message: "Puli to'lanmaganligi sababli kirish cheklangan! Iltimos, xizmat haqini to'lang."
+          });
+        }
+      }
+
       res.json({
         success: true,
         waiterId: waiter.id,
@@ -5524,7 +5896,7 @@ async function startServer() {
       `).run(targetPhone, code, expiresAt, "", now);
 
       const config = getTelegramBotConfig();
-      const botUsername = config.botUsername || "InposAuthBot";
+      const botUsername = config.botUsername || "BarposAuth_Bot";
 
       let sentToTelegram = false;
       if (config.botToken && targetPhone) {
@@ -5666,12 +6038,21 @@ async function startServer() {
       const digitsOnly = userIdentifier.replace(/\D/g, '');
 
       // Check admin_users table by username, exact phone, or matching digits
-      let admin = db.prepare(`
-        SELECT * FROM admin_users 
-        WHERE username = ? 
-           OR phone = ? 
-           OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '+', ''), '-', '') LIKE ?
-      `).get(userIdentifier, userIdentifier, `%${digitsOnly.slice(-9)}%`) as any;
+      let admin: any;
+      if (digitsOnly.length >= 7) {
+        admin = db.prepare(`
+          SELECT * FROM admin_users 
+          WHERE username = ? 
+             OR phone = ? 
+             OR REPLACE(REPLACE(REPLACE(phone, ' ', ''), '+', ''), '-', '') LIKE ?
+        `).get(userIdentifier, userIdentifier, `%${digitsOnly.slice(-9)}%`) as any;
+      } else {
+        admin = db.prepare(`
+          SELECT * FROM admin_users 
+          WHERE username = ? 
+             OR phone = ?
+        `).get(userIdentifier, userIdentifier) as any;
+      }
       
       // Fallback if credentials match initial default
       if (!admin && (userIdentifier === "admin" || userIdentifier.includes("339939900")) && password === "admin123") {
@@ -5724,154 +6105,12 @@ async function startServer() {
     }
   });
 
-  // Admin registration (supports both quick 1-step compact registration and verified registration)
+  // Public admin registration is disabled: only CRM can create cafes and admin credentials
   app.post("/api/admin/register", (req, res) => {
-    try {
-      const { companyName, businessType, fullName, name, phone, email, password, verificationCode, code } = req.body;
-      const smsCode = String(verificationCode || code || "").trim();
-      const userIdentifier = String(phone || email || "").trim();
-      const cafeDisplayName = String(companyName || name || "Yangi Restoran").trim();
-      const ownerName = String(fullName || name || cafeDisplayName + " Egasi").trim();
-
-      if (!cafeDisplayName || !userIdentifier || !password) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Iltimos, barcha maydonlarni to'ldiring (Muassasa nomi, E-mail/Telefon va parol)!" 
-        });
-      }
-
-      const cleanPhone = userIdentifier.replace(/\D/g, '');
-
-      // If SMS code is provided, strictly verify it
-      if (smsCode) {
-        const verification = db.prepare("SELECT * FROM telegram_verifications WHERE phone = ?").get(cleanPhone) as any;
-        if (!verification) {
-          return res.status(400).json({
-            success: false,
-            message: "Ushbu raqam uchun Telegram orqali kod topilmadi."
-          });
-        }
-
-        const now = Date.now();
-        if (now > verification.expiresAt) {
-          return res.status(400).json({
-            success: false,
-            codeExpired: true,
-            message: "Kod muddati tugagan (60 soniya). Yangi kod oling."
-          });
-        }
-
-        if (verification.code !== smsCode) {
-          return res.status(400).json({
-            success: false,
-            message: "Tasdiqlash kodi noto'g'ri!"
-          });
-        }
-
-        db.prepare("DELETE FROM telegram_verifications WHERE phone = ?").run(cleanPhone);
-      }
-
-      // Check if user/phone/email already exists
-      const existing = db.prepare("SELECT * FROM admin_users WHERE phone = ? OR username = ?").get(userIdentifier, userIdentifier) as any;
-      if (existing) {
-        // If already exists and password matches, log in directly
-        if (existing.password === password) {
-          const activeCafeId = existing.cafeId || "default";
-          const cafe = db.prepare("SELECT * FROM cafes WHERE id = ?").get(activeCafeId) as any;
-          return res.json({
-            success: true,
-            message: "Tizimga muvaffaqiyatli kirildi!",
-            token: "admin-session-" + Date.now(),
-            admin: {
-              id: existing.id,
-              username: existing.username,
-              fullName: existing.fullName || ownerName,
-              phone: existing.phone || userIdentifier,
-              role: existing.role || "owner",
-              companyName: cafe?.name || existing.companyName || cafeDisplayName,
-              businessType: cafe?.businessType || existing.businessType || "restaurant",
-              cafeId: activeCafeId
-            }
-          });
-        }
-        return res.status(400).json({ 
-          success: false, 
-          message: "Ushbu email yoki telefon raqami bilan allaqachon ro'yxatdan o'tilgan. Kirish bo'limidan kiring." 
-        });
-      }
-
-      const adminId = "admin-" + Math.random().toString(36).substr(2, 9);
-      const cafeId = "cafe-" + Math.random().toString(36).substr(2, 8);
-
-      // Create new Cafe in multi-tenant directory
-      db.prepare(`
-        INSERT INTO cafes (id, name, businessType, ownerId, phone)
-        VALUES (?, ?, ?, ?, ?)
-      `).run(cafeId, cafeDisplayName, businessType || 'restaurant', adminId, userIdentifier);
-
-      // Create Admin User bound to this cafe
-      db.prepare(`
-        INSERT INTO admin_users (id, username, password, fullName, phone, role, companyName, businessType, cafeId)
-        VALUES (?, ?, ?, ?, ?, 'owner', ?, ?, ?)
-      `).run(adminId, userIdentifier, password, ownerName, userIdentifier, cafeDisplayName, businessType || 'restaurant', cafeId);
-
-      // Seed 10 starter tables for this new cafe
-      const insertTable = db.prepare("INSERT INTO tables (id, number, capacity, status, cafeId) VALUES (?, ?, ?, 'available', ?)");
-      for (let i = 1; i <= 10; i++) {
-        insertTable.run(`${cafeId}-t-${i}`, i.toString(), 4, cafeId);
-      }
-
-      // Seed Owner role for this new cafe
-      const ownerRoleId = `${cafeId}-role-owner`;
-      db.prepare(`
-        INSERT INTO roles (id, name, accessLevel, description, canAccessPos, canTakeOrders, canCloseOrders, canCancelOrders, canGiveDiscount, canAccessReports, canAccessAdmin, cafeId)
-        VALUES (?, ?, ?, ?, 1, 1, 1, 1, 1, 1, 1, ?)
-      `).run(ownerRoleId, 'Owner', "To'liq kirish", "Barcha huquqlarga ega muassasa egasi", cafeId);
-
-      // Seed dedicated Owner staff for this cafe (No extra waiters, products or categories pre-seeded!)
-      const insertWaiter = db.prepare("INSERT INTO waiters (id, name, pin, role, phone, status, cafeId) VALUES (?, ?, ?, ?, ?, 'active', ?)");
-      insertWaiter.run(`${cafeId}-w-1`, `${ownerName} (Owner)`, "1111", ownerRoleId, userIdentifier, cafeId);
-
-      // Receipt config for this cafe
-      const cafeReceiptConfig = {
-        restaurantName: companyName,
-        address: "Toshkent sh.",
-        phone: phone,
-        footerMessage: "Tashrifingiz uchun rahmat!",
-        showLogo: true,
-        infoText: `iNPOS Cloud System\nKafe: ${companyName}\nID: ${cafeId}\nTel: ${phone}`,
-        textAlign: "center",
-        autoPrintKitchen: true,
-        autoPrintBill: true
-      };
-      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(`receipt_config_${cafeId}`, JSON.stringify(cafeReceiptConfig));
-
-      const newAdmin = {
-        id: adminId,
-        username: phone,
-        fullName,
-        phone,
-        role: "owner",
-        companyName,
-        businessType: businessType || 'restaurant',
-        cafeId
-      };
-
-      res.json({
-        success: true,
-        token: "admin-session-" + Date.now(),
-        admin: newAdmin,
-        cafe: {
-          id: cafeId,
-          name: companyName,
-          businessType: businessType || 'restaurant'
-        },
-        message: "Ro'yxatdan o'tish va yangi kafe yaratish muvaffaqiyatli yakunlandi!"
-      });
-    } catch (err: any) {
-      console.error("Registration error:", err);
-      res.status(500).json({ success: false, message: err.message });
-    }
+    return res.status(403).json({
+      success: false,
+      message: "Ommaviy ro'yxatdan o'tish yopilgan. Yangi muassasa va admin hisoblari faqat markaziy CRM orqali yaratiladi!"
+    });
   });
 
   // Admin profile update

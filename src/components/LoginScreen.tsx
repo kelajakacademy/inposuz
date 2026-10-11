@@ -572,10 +572,22 @@ export default function LoginScreen() {
                 )}
               </div>
 
-              {/* ERROR MESSAGE IF INVALID PIN */}
+              {/* ERROR MESSAGE IF INVALID PIN OR UNPAID ACCESS DENIAL */}
               {error && (
-                <div className="w-full mb-2 p-2 rounded-lg bg-red-600/90 text-white text-[11px] font-bold text-center animate-shake">
-                  {error}
+                <div className={`w-full mb-3 p-3 rounded-xl text-center font-black shadow-lg ${
+                  error.includes("Puli to'lanmaganligi") || error.includes("cheklangan")
+                    ? "bg-red-600 text-white border-2 border-red-300 animate-pulse text-xs leading-snug"
+                    : "bg-red-600/95 text-white text-[11px] animate-shake"
+                }`}>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <ShieldAlert size={16} className="shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  {error.includes("Puli to'lanmaganligi") && (
+                    <div className="text-[10px] text-white/90 font-medium mt-1">
+                      Obuna muddatini uzaytirish uchun CRM administratoriga murojaat qiling
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -17,7 +17,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-const AdminRoute: React.FC<{ defaultView?: "login" | "register" }> = ({ defaultView = "login" }) => {
+const AdminRoute: React.FC = () => {
   const [admin, setAdmin] = useState<AdminUser | null>(() => {
     try {
       const saved = localStorage.getItem("inpos_admin_session");
@@ -39,7 +39,7 @@ const AdminRoute: React.FC<{ defaultView?: "login" | "register" }> = ({ defaultV
   };
 
   if (!admin) {
-    return <AdminLogin onLoginSuccess={handleLoginSuccess} onGoToPos={() => navigate("/")} initialMode={defaultView} />;
+    return <AdminLogin onLoginSuccess={handleLoginSuccess} onGoToPos={() => navigate("/")} />;
   }
 
   return <AdminPortal admin={admin} onLogout={handleLogout} onGoToPos={() => navigate("/")} />;
@@ -55,8 +55,8 @@ export default function App() {
             <Route path="/crm" element={<SuperAdminCRMWrapper />} />
             <Route path="/qr-scanner" element={<TelegramQrScanner />} />
             <Route path="/admin" element={<AdminRoute />} />
-            <Route path="/register" element={<AdminRoute defaultView="register" />} />
-            <Route path="/admin/register" element={<AdminRoute defaultView="register" />} />
+            <Route path="/register" element={<Navigate to="/admin" replace />} />
+            <Route path="/admin/register" element={<Navigate to="/admin" replace />} />
             <Route path="/kitchen" element={<div className="h-screen w-screen bg-[#141619] overflow-hidden flex flex-col"><KitchenView isStandaloneTvMode={true} /></div>} />
             <Route path="/tv" element={<div className="h-screen w-screen bg-[#141619] overflow-hidden flex flex-col"><KitchenView isStandaloneTvMode={true} /></div>} />
             <Route path="/login" element={<LoginScreen />} />

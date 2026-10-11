@@ -28,16 +28,17 @@ echo "NPM versiyasi: $(npm -v)"
 echo "⚙️ PM2 ва TSX глобал ўрнатилмоқда..."
 sudo npm install -g pm2 tsx
 
-# 4. Project Build
+# 4. Project Build & Native Modules Rebuild
 echo "🛠 Loyiha kutubxonalari o'rnatilmoqda va build qilinmoqda..."
 npm install
+npm rebuild better-sqlite3 || true
 npm run build
 
 # 5. Start Application with PM2
 echo "🔄 PM2 orqali BarPOS servisi ishga tushirilmoqda..."
 pm2 stop barpos || true
 pm2 delete barpos || true
-pm2 start "npm start" --name "barpos"
+pm2 start "npx tsx server.ts" --name "barpos"
 pm2 save
 sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $HOME || true
 

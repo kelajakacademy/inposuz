@@ -100,7 +100,7 @@ export const TelegramQrScanner: React.FC = () => {
       const data = await res.json();
       if (res.ok && data.success) {
         setStatus("success");
-        setMessage("✅ Браузерда Master CRM сайтига кириш муваффақиятли тасдиқланди!");
+        setMessage("✅ Браузерда CRM сайтига кириш муваффақиятли тасдиқланди!");
         stopWebcam();
         setTimeout(() => {
           (window as any).Telegram?.WebApp?.close();
@@ -145,7 +145,7 @@ export const TelegramQrScanner: React.FC = () => {
             <span>iNPOS Auth Bot Scanner</span>
           </h1>
           <p className="text-[11px] text-gray-400">
-            Master CRM Камера QR-код Сканери
+            CRM Камера QR-код Сканери
           </p>
         </div>
 

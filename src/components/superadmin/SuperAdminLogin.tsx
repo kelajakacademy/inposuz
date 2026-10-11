@@ -25,20 +25,20 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const BOT_USERNAME = "@InposAuth_Bot";
+  const BOT_USERNAME = "@BarposAuth_Bot";
 
   const t = {
     uz: {
-      title: "Master Owner CRM",
-      subtitle: "Дастур эгаси ва умумий тизим бошқаруви",
+      title: "CRM",
+      subtitle: "",
       qrTab: "📷 QR-код сканерлаш (Автомат)",
       codeTab: "🔑 Telegram Код орқали",
-      emailLabel: "Master Login Email",
+      emailLabel: "Login Email",
       emailPlaceholder: "Эмаил манзилингизни киритинг",
-      emailHint: "Дастур эгасининг авторизация эмаили (қўлда киритилади)",
+      emailHint: "Авторизация эмаили",
       requestBtn: "Telegram Bot орқали код олиш",
       verifyLabel: "Telegram 6-хонали тасдиқлаш коди",
-      verifyHint: "@InposAuth_Bot ботидан юборилган 6 хонали тасдиқлаш кодини киритинг",
+      verifyHint: "@BarposAuth_Bot ботидан юборилган 6 хонали тасдиқлаш кодини киритинг",
       submitBtn: "КИРИШ ЖАРЁНОНИНИ ТАСДИҚЛАШ",
       resendBtn: "Кодни қайта юбориш",
       posBtn: "POS Терминалга қайтиш",
@@ -47,16 +47,16 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
       qrHintText: "Телефонингиз камераси ёки Telegram орқали ушбу QR-кодни сканер қилинг. Ботингизда тасдиқланиши билан браузерга автоматик кирилади."
     },
     ru: {
-      title: "Master Owner CRM",
-      subtitle: "Панель владельца системы и управление подписками",
+      title: "CRM",
+      subtitle: "",
       qrTab: "📷 QR-код сканирование (Автомат)",
       codeTab: "🔑 Вход по Telegram коду",
-      emailLabel: "Master Login Email",
+      emailLabel: "Login Email",
       emailPlaceholder: "Введите Ваш e-mail адрес",
-      emailHint: "Авторизационный e-mail владельца (вводится вручную)",
+      emailHint: "Авторизационный e-mail",
       requestBtn: "Получить код через Telegram Bot",
       verifyLabel: "6-значный код подтверждения Telegram",
-      verifyHint: "Введите 6-значный код, полученный от бота @InposAuth_Bot",
+      verifyHint: "Введите 6-значный код, полученный от бота @BarposAuth_Bot",
       submitBtn: "ПОДТВЕРДИТЬ ВХОД",
       resendBtn: "Запросить код повторно",
       posBtn: "Вернуться в POS",
@@ -65,16 +65,16 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
       qrHintText: "Отсканируйте QR-код камерой телефона или Telegram. После подтверждения в боте вход выполнится автоматически."
     },
     en: {
-      title: "Master Owner CRM",
-      subtitle: "System Owner Portal & Subscription Management",
+      title: "CRM",
+      subtitle: "",
       qrTab: "📷 QR Code Scan (Auto)",
       codeTab: "🔑 Telegram Code Auth",
-      emailLabel: "Master Login Email",
-      emailPlaceholder: "Enter your master email address",
-      emailHint: "Owner authorization email (entered manually)",
+      emailLabel: "Login Email",
+      emailPlaceholder: "Enter your email address",
+      emailHint: "Authorization email",
       requestBtn: "Get Code via Telegram Bot",
       verifyLabel: "6-digit Telegram Verification Code",
-      verifyHint: "Enter 6-digit verification code received from @InposAuth_Bot",
+      verifyHint: "Enter 6-digit verification code received from @BarposAuth_Bot",
       submitBtn: "CONFIRM AND SIGN IN",
       resendBtn: "Resend Code",
       posBtn: "Back to POS",
@@ -91,7 +91,7 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
       const data = await res.json();
       if (data && data.sessionId) {
         setQrSessionId(data.sessionId);
-        setQrLink(data.qrLink || `https://t.me/InposAuth_Bot?start=${data.sessionId}`);
+        setQrLink(data.qrLink || `https://t.me/BarposAuth_Bot?start=${data.sessionId}`);
       }
     } catch (e) {
       console.error("QR Session creation error", e);
@@ -134,7 +134,7 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
 
     const em = email.trim().toLowerCase();
     if (!em || em !== "nastarin@inpos.uz") {
-      setError("❌ Илтимос, тўғри Master CRM логини (nastarin@inpos.uz) ни киритинг!");
+      setError("❌ Илтимос, тўғри CRM логини (nastarin@inpos.uz) ни киритинг!");
       return;
     }
 
@@ -157,7 +157,7 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
       }
     } catch (err) {
       setOtpStep("verify");
-      setSuccessMsg(`🤖 Илтимос, Telegram'да @InposAuth_Bot ботига кириб /start босинг!`);
+      setSuccessMsg(`🤖 Илтимос, Telegram'да @BarposAuth_Bot ботига кириб /start босинг!`);
     } finally {
       setIsLoading(false);
     }
@@ -185,7 +185,7 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setSuccessMsg("✅ Тасдиқланди! Master CRM ойнасига кирилмоқда...");
+        setSuccessMsg("✅ Тасдиқланди! CRM ойнасига кирилмоқда...");
         setTimeout(() => {
           localStorage.setItem("inpos_master_crm_auth", "true");
           onLoginSuccess();
@@ -236,13 +236,10 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
         <div className="mb-6 text-center flex flex-col items-center">
           <div className="flex items-center gap-2">
             <InposLogo className="h-10 w-auto" variant="navy" />
-            <span className="text-xs bg-amber-500/20 text-amber-700 border border-amber-500/30 font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-              Master Owner CRM
+            <span className="text-xs bg-blue-500/10 text-blue-700 border border-blue-500/20 font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+              CRM
             </span>
           </div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest mt-1.5 font-bold">
-            {t.subtitle}
-          </p>
         </div>
 
         {/* AUTH MODE TOGGLE TABS */}
@@ -394,7 +391,7 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
                     </div>
 
                     <a
-                      href="https://t.me/InposAuth_Bot?start=login"
+                      href="https://t.me/BarposAuth_Bot?start=login"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-400 text-white font-black text-xs rounded-lg transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
@@ -455,7 +452,7 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onLoginSuccess
 
       {/* FOOTER */}
       <footer className="w-full text-center py-4 text-[11px] text-gray-400 border-t border-gray-200/60 bg-white">
-        © 2026 iNPOS Cloud Master CRM System. All rights reserved.
+        © 2026 iNPOS Cloud CRM System. All rights reserved.
       </footer>
     </div>
   );

@@ -27,80 +27,67 @@ export interface CafePaymentRecord {
 export interface CafeCRMRecord {
   id: string;
   name: string;
-  ownerName: string;
+  ownerName: string; // Mas'ul shaxs / Rahbar
   phone: string;
   address: string;
   registrationDate: string;
   status: "active" | "trial" | "expired";
+  subscriptionFee?: number;
+  businessType?: string;
   dailyTurnover: number;
   monthlyTurnover: number;
   yearlyTurnover: number;
   totalPaid: number;
   payments: CafePaymentRecord[];
+  adminCredentials?: {
+    username: string;
+    password: string;
+  };
+  expiresAt?: string;
+  isTrial?: boolean;
+  trialDays?: number;
+  isPaymentRequired?: boolean;
 }
 
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   brandName: "iNPOS RESTAURANT",
   watermarkText: "www.inpos.uz",
-  loginInstructionText: "Инструкция для кассиров в программе iNPOS",
-  supportTitle: "Служба поддержки",
+  loginInstructionText: "iNPOS tizimi xodimlari uchun qo'llanma",
+  supportTitle: "Mijozlarni qo'llab-quvvatlash xizmati",
   supportLogoUrl: "/inpos-logo.svg",
   supportEmail: "help@inpos.uz",
   supportPhones: [
-    { id: "sp1", city: "ТАШКЕНТ", phone: "+998 (95) 198-88-44" },
-    { id: "sp2", city: "ТАШКЕНТ", phone: "+998 (95) 144-64-51" },
-    { id: "sp3", city: "САМАРКАНД", phone: "+998 (93) 123-45-67" }
+    { id: "sp1", city: "TOSHKENT", phone: "+998 (71) 200-00-00" },
+    { id: "sp2", city: "TOSHKENT", phone: "+998 (95) 198-88-44" },
+    { id: "sp3", city: "SAMARQAND", phone: "+998 (93) 123-45-67" }
   ],
   currency: "UZS"
 };
 
+// ONLY real registered cafes - fake cafes removed
 export const INITIAL_CAFES_DATA: CafeCRMRecord[] = [
   {
-    id: "CF-1001",
-    name: "Jowi Restaurant & Lounge",
-    ownerName: "Хакимжон Хайитов",
-    phone: "+998 90 123 45 67",
-    address: "Toshkent sh., Amir Temur ko'chasi 45-uy",
+    id: "default",
+    name: "iNPOS Restaurant",
+    ownerName: "Xakimjon Xayitov",
+    phone: "+998339939900",
+    address: "Toshkent shahri",
     registrationDate: "2026-01-10",
     status: "active",
-    dailyTurnover: 4850000,
-    monthlyTurnover: 145500000,
-    yearlyTurnover: 1746000000,
-    totalPaid: 2500000,
-    payments: [
-      { id: "p1", cafeId: "CF-1001", date: "2026-01-10", amount: 1000000, paymentMethod: "card", notes: "Борд улаш тўлови" },
-      { id: "p2", cafeId: "CF-1001", date: "2026-02-10", amount: 1500000, paymentMethod: "bank", notes: "Февраль ойлик POS обуна" }
-    ]
-  },
-  {
-    id: "CF-1002",
-    name: "Grand Fast Food & Cafe",
-    ownerName: "Исломжон Алиев",
-    phone: "+998 93 555 44 33",
-    address: "Toshkent sh., Chorsu bozori 12-д",
-    registrationDate: "2026-02-01",
-    status: "active",
-    dailyTurnover: 3200000,
-    monthlyTurnover: 96000000,
-    yearlyTurnover: 1152000000,
-    totalPaid: 1500000,
-    payments: [
-      { id: "p3", cafeId: "CF-1002", date: "2026-02-01", amount: 1500000, paymentMethod: "cash", notes: "Февраль POS лицензия" }
-    ]
-  },
-  {
-    id: "CF-1003",
-    name: "Karaoke & Bar Gold",
-    ownerName: "Фаррух Каримов",
-    phone: "+998 97 888 77 66",
-    address: "Toshkent sh., Chilanzar 5-kvartal",
-    registrationDate: "2026-02-15",
-    status: "trial",
-    dailyTurnover: 8500000,
-    monthlyTurnover: 255000000,
-    yearlyTurnover: 3060000000,
-    totalPaid: 0,
-    payments: []
+    subscriptionFee: 500000,
+    businessType: "restaurant",
+    dailyTurnover: 0,
+    monthlyTurnover: 0,
+    yearlyTurnover: 0,
+    totalPaid: 500000,
+    payments: [],
+    expiresAt: "2027-12-31",
+    isTrial: false,
+    trialDays: 14,
+    adminCredentials: {
+      username: "admin",
+      password: "admin123"
+    }
   }
 ];
 
@@ -125,7 +112,15 @@ export function saveStoredSystemConfig(config: SystemConfig): void {
 export function getStoredCafesData(): CafeCRMRecord[] {
   try {
     const saved = localStorage.getItem("propos_cafes_crm");
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed: CafeCRMRecord[] = JSON.parse(saved);
+      // Filter out any fake demo cafes (CF-1002, CF-1003, etc.)
+      const cleaned = parsed.filter(c => c.id !== "CF-1002" && c.id !== "CF-1003");
+      if (cleaned.length !== parsed.length) {
+        saveStoredCafesData(cleaned);
+      }
+      return cleaned;
+    }
   } catch (e) {
     console.warn("Failed to load cafes data:", e);
   }
@@ -134,7 +129,9 @@ export function getStoredCafesData(): CafeCRMRecord[] {
 
 export function saveStoredCafesData(cafes: CafeCRMRecord[]): void {
   try {
-    localStorage.setItem("propos_cafes_crm", JSON.stringify(cafes));
+    // Purge fake mock cafes before saving
+    const cleaned = cafes.filter(c => c.id !== "CF-1002" && c.id !== "CF-1003");
+    localStorage.setItem("propos_cafes_crm", JSON.stringify(cleaned));
   } catch (e) {
     console.warn("Failed to save cafes data:", e);
   }

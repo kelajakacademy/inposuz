@@ -84,6 +84,41 @@ export const CashierLayout: React.FC = () => {
   const [selectedWaiterFilter, setSelectedWaiterFilter] = useState("all");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
 
+  // Dynamic Halls from server/admin sync
+  const [halls, setHalls] = useState<Array<{ id: string; name: string; servicePercent?: number; status?: string }>>([
+    { id: "h1", name: "Asosiy zal", servicePercent: 10, status: "active" },
+    { id: "h2", name: "Terassa", servicePercent: 10, status: "active" },
+    { id: "h3", name: "VIP xonalar", servicePercent: 15, status: "active" },
+    { id: "h4", name: "Bar", servicePercent: 10, status: "active" }
+  ]);
+
+  useEffect(() => {
+    const fetchHalls = async () => {
+      const cafeId = linkedCafe?.id || waiter?.cafeId || "default";
+      try {
+        const res = await fetch("/api/halls", { headers: { "x-cafe-id": cafeId } });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setHalls(data);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch halls in cashier:", e);
+      }
+    };
+    fetchHalls();
+    const interval = setInterval(fetchHalls, 5000);
+    return () => clearInterval(interval);
+  }, [linkedCafe?.id, waiter?.cafeId]);
+
+  // Filter tables by selected hall name
+  const filteredTables = tables.filter(t => {
+    if (selectedHallFilter === "all") return true;
+    const hallName = (t as any).hall || halls[0]?.name || "Asosiy zal";
+    return hallName === selectedHallFilter;
+  });
+
   // Expenses and Incomes (Расходы и приходы) Modal/State
   const [cashTransactions, setCashTransactions] = useState<Array<{
     id: string;
@@ -313,23 +348,43 @@ export const CashierLayout: React.FC = () => {
           <div className="flex-1 flex flex-col h-full bg-[#121418] overflow-hidden">
             {/* Top Sub-Bar for Halls Tabs */}
             <div className="h-10 px-4 bg-[#1a1d22] border-b border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {["Barchasi", "Asosiy zal", "Terassa", "VIP xonalar", "Bar", "Yandex EDA"].map((hallName, i) => (
+              <div className="flex items-center gap-2 overflow-x-auto">
+                <button
+                  onClick={() => setSelectedHallFilter("all")}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                    selectedHallFilter === "all"
+                      ? "bg-[#ffcc00] text-black border border-amber-500 font-black shadow"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Barchasi
+                </button>
+                {halls.map((h) => (
                   <button
-                    key={hallName}
-                    onClick={() => setSelectedHallFilter(i === 0 ? "all" : hallName)}
-                    className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${
-                      (selectedHallFilter === "all" && i === 0) || selectedHallFilter === hallName
+                    key={h.id || h.name}
+                    onClick={() => setSelectedHallFilter(h.name)}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                      selectedHallFilter === h.name
                         ? "bg-[#ffcc00] text-black border border-amber-500 font-black shadow"
                         : "text-gray-400 hover:text-white"
                     }`}
                   >
-                    {hallName === "Yandex EDA" ? "🟡 Yandex EDA" : hallName}
+                    {h.name}
                   </button>
                 ))}
+                <button
+                  onClick={() => setSelectedHallFilter("Yandex EDA")}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                    selectedHallFilter === "Yandex EDA"
+                      ? "bg-[#ffcc00] text-black border border-amber-500 font-black shadow"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  🟡 Yandex EDA
+                </button>
               </div>
-              <div className="text-xs text-gray-400">
-                Jami stollar: <span className="text-white font-bold">{tables.length}</span>
+              <div className="text-xs text-gray-400 whitespace-nowrap">
+                Jami stollar: <span className="text-white font-bold">{filteredTables.length}</span> / {tables.length}
               </div>
             </div>
 
@@ -339,7 +394,7 @@ export const CashierLayout: React.FC = () => {
             ) : (
               <div className="flex-1 p-6 overflow-y-auto">
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {tables.map((table) => {
+                  {filteredTables.map((table) => {
                     const isOccupied = table.status === "occupied";
                     return (
                       <button
@@ -648,13 +703,12 @@ export const CashierLayout: React.FC = () => {
                 <select
                   value={selectedHallFilter}
                   onChange={(e) => setSelectedHallFilter(e.target.value)}
-                  className="w-full bg-[#121418] border border-gray-700 rounded-xl px-3 py-2 text-white outline-none"
+                  className="w-full bg-[#121418] border border-gray-700 rounded-xl px-3 py-2 text-white outline-none cursor-pointer"
                 >
                   <option value="all">Barcha zallar</option>
-                  <option value="Asosiy zal">Asosiy zal</option>
-                  <option value="Terassa">Terassa</option>
-                  <option value="VIP xonalar">VIP xonalar</option>
-                  <option value="Bar">Bar</option>
+                  {halls.map((h) => (
+                    <option key={h.id || h.name} value={h.name}>{h.name}</option>
+                  ))}
                 </select>
               </div>
 
